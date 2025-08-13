@@ -1,0 +1,5 @@
+*.vsix
+*/vsix/*
+*.vscode
+.vscode/*
+node_modules/*

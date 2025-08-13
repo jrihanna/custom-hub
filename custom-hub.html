@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="css/azure-styles.css">
+    <script src="sdk/scripts/VSS.SDK.min.js"></script>
+    <script type="text/javascript">
+        VSS.init({
+            explicitNotifyLoaded: true,
+            usePlatformStyles: true
+        });
+
+        VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
+            // GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?orderBy={orderBy}&$top={$top}&continuationToken={continuationToken}&api-version=7.1
+            // GET https://dev.azure.com/{organization}/{project}/_apis/build/definitions?api-version=7.1
+            // VSS.register("CustomHub", function () {
+            const projectId = VSS.getWebContext().project.id;
+            console.log("Project ID:", projectId);
+
+            const organizationName = VSS.getWebContext().account.name;
+            console.log("Organization Name:", organizationName);
+            console.log("VSS_Service:", VSS_Service);
+            console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
+
+            let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient2_2);
+
+            const pipelineData = [
+                {
+                    name: "springboot-actuator-sample",
+                    id: "#20250810.1",
+                    description: "Set up CI with Azure Pipelines",
+                    status: "error"
+                },
+                {
+                    name: "webapp-deployment",
+                    id: "#20250809.3",
+                    description: "Deploy web application to Azure",
+                    status: "success"
+                },
+                {
+                    name: "api-tests",
+                    id: "#20250808.2",
+                    description: "Run automated API tests",
+                    status: "running"
+                },
+                {
+                    name: "database-migration",
+                    id: "#20250807.1",
+                    description: "Update database schema",
+                    status: "success"
+                }
+            ];
+
+            // Function to create a pipeline item element
+            function createPipelineItem(pipeline) {
+
+                let pipelineStatus = 0;
+                let definition = {};
+                const pipelineItem = document.createElement('div');
+                buildClient.getDefinitions(projectId).then((definitions) => {
+                    console.log("Definitions:", definitions);
+                    // var $titleContainer = $('#pipelineList');
+                    for (let i = 0; i < definitions.length; i++) {
+                        console.log("Build Name2:", pipeline.definition.name);
+                        if (definitions[i].id === pipeline.definition.id) {
+                            definition = definitions[i];
+                            console.log("Definition found:", definition);
+                            pipelineStatus = definition.queueStatus;
+                            console.log("definition[i].queueStatus:", definition.queueStatus);
+                            console.log("pipelineStatus2:", pipelineStatus);
+
+
+                            // Create status icon based on pipeline status
+                            let statusIcon = '';
+                            let statusClass = '';
+
+                            switch (pipeline.status) {
+                                case 2:
+                                    statusIcon = 'x';
+                                    statusClass = 'error-circle';
+                                    break;
+                                case 1:
+                                    statusIcon = '✓';
+                                    statusClass = 'success-circle';
+                                    break;
+                                // case 'running':
+                                //     statusIcon = '⟳';
+                                //     statusClass = 'running-circle';
+                                //     break;
+                                default:
+                                    statusIcon = '?';
+                                    statusClass = 'unknown-circle';
+                            }
+
+                            let statusText = '';
+                            let definitionStatusClass = '';
+                            console.log("pipelineStatus3:", pipelineStatus);
+                            switch (pipelineStatus) {
+                                case 0:
+                                    statusText = '';
+                                    break;
+                                case 1:
+                                    statusText = 'PAUSED';
+                                    definitionStatusClass = 'pipeline-paused';
+                                    break;
+                                case 2:
+                                    statusText = 'DISABLED';
+                                    definitionStatusClass = 'pipeline-disabled';
+                                    break;
+                                default:
+                                    statusText = '';
+                            }
+
+                            pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
+                            pipelineItem.innerHTML = `
+                <div class="${statusClass}">${statusIcon}</div>
+                <div class="pipeline-info">
+                    <div class="pipeline-name">${pipeline.definition.name}</div>
+                    <div class="pipeline-details">
+                        <span class="pipeline-id">${pipeline.buildNumber}</span>
+                        <span class="pipeline-description">${pipeline.triggerInfo['ci.message']}</span>
+                        <span class="pipeline-description"><b>${statusText}</b></span>
+                    </div>
+                </div>
+            `;
+                            break
+                        }
+                    }
+                }).catch((error) => {
+                    console.error("Error fetching definitions:", error);
+                });
+
+                return pipelineItem;
+            }
+
+            buildClient.getBuilds(projectId).then((builds) => {
+                console.log("Builds:", builds);
+                for (let i = 0; i < builds.length; i++) {
+                    console.log("Build ID:", builds[i].id);
+                    console.log("Build Name:", builds[i].definition.name);
+                    console.log("definition id:", builds[i].definition.id);
+
+                    const pipelineItem = createPipelineItem(builds[i]);
+                    pipelineList.appendChild(pipelineItem);
+                }
+
+            }).catch((error) => {
+                console.error("Error fetching builds:", error);
+            });
+
+
+            // buildClient.getDefinition(projectId, 2).then((definition) => {
+            //     console.log("Definition:", definition);
+            //     console.log("Definition Name:", definition.name);
+            //     console.log("Definition ID:", definition.id);
+            //     console.log("Definition queueStatus:", definition.queueStatus);
+            //     // pipelineStatus = definition.queueStatus;
+            //     // console.log("pipelineStatus1:", pipelineStatus);
+            // }).catch((error) => {
+            //     console.error("Error fetching definition:", error);
+            // });
+
+
+            VSS.notifyLoadSucceeded();
+        });
+    </script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="page-title">Pipelines</h1>
+            <div class="header-actions">
+                <button class="new-pipeline-btn">New pipeline</button>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-tabs">
+                <button class="nav-tab">Recent</button>
+                <button class="nav-tab active">All</button>
+                <button class="nav-tab">Runs</button>
+            </div>
+            <div class="filter-section">
+                <input type="text" class="filter-input" placeholder="Filter pipelines">
+            </div>
+        </div>
+
+        <div class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">All pipelines</h2>
+                <button class="new-folder-btn">New folder</button>
+            </div>
+
+            <div class="table-header">
+                <div class="table-header-text">Name</div>
+            </div>
+
+            <div class="pipeline-list" id="pipelineList"></div>
+        </div>
+    </div>
+</body>
+
+</html>

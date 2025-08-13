@@ -1,12 +1,12 @@
 {
     "manifestVersion": 1,
-    "id": "azure-devops-extensions-spring-actuator-widget",
-    "version": "1.0.3",
-    "name": "Spring Actuator",
-    "description": "Spring Actuator",
+    "id": "azure-devops-extensions-custom-hub",
+    "version": "1.0.69",
+    "name": "Custom Hub",
+    "description": "Custom hub for Azure DevOps",
     "publisher": "jriri",
     "categories": [
-        "Azure Boards"
+        "Azure Pipelines"
     ],
     "targets": [
         {
@@ -18,57 +18,34 @@
     },
     "contributions": [
         {
-            "id": "SpringActuatorWidget",
-            "type": "ms.vss-dashboards-web.widget",
+            "id": "CustomHub",
+            "type": "ms.vss-web.hub",
             "targets": [
-                "ms.vss-dashboards-web.widget-catalog",
-                ".SpringActuatorWidget.Configuration"
+                "ms.vss-build-web.build-release-hub-group"
             ],
             "properties": {
-                "name": "Spring Actuator",
-                "description": "Spring Actuator",
+                "name": "Custom Hub",
+                "order": 99,
                 "catalogIconUrl": "img/CatalogIcon.png",
                 "previewImageUrl": "img/preview.png",
-                "uri": "actuator-tile.html",
-                "supportedSizes": [
-                    {
-                        "rowSpan": 1,
-                        "columnSpan": 2
-                    }
-                ],
-                "supportedScopes": [
-                    "project_team"
-                ]
-            }
-        },
-        {
-            "id": "SpringActuatorWidget.Configuration",
-            "type": "ms.vss-dashboards-web.widget-configuration",
-            "targets": [
-                "ms.vss-dashboards-web.widget-configuration"
-            ],
-            "properties": {
-                "name": "SpringActuatorWidget Configuration",
-                "description": "Configures SpringActuator Widget",
-                "uri": "configuration.html"
+                "uri": "custom-hub.html"
             }
         }
     ],
+    "scopes": [
+        "vso.pipelineresources_manage",
+        "vso.build",
+        "vso.build_execute",
+        "vso.pipelineresources_use",
+        "vso.project"
+    ],
     "files": [
         {
-            "path": "actuator-tile.html",
+            "path": "custom-hub.html",
             "addressable": true
         },
         {
-            "path": "configuration.html",
-            "addressable": true
-        },
-        {
-            "path": "css/widget-styles.css",
-            "addressable": true
-        },
-        {
-            "path": "css/configuration-styles.css",
+            "path": "css",
             "addressable": true
         },
         {
