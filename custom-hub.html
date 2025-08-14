@@ -56,97 +56,101 @@
 
                 let pipelineStatus = 0;
                 let definition = {};
+
+                // use _links to get the URL for the pipeline and badge
+                const pipelineURL = pipeline._links.web.href;
                 const pipelineItem = document.createElement('div');
-                buildClient.getDefinitions(projectId).then((definitions) => {
-                    console.log("Definitions:", definitions);
-                    // var $titleContainer = $('#pipelineList');
-                    for (let i = 0; i < definitions.length; i++) {
-                        console.log("Build Name2:", pipeline.definition.name);
-                        if (definitions[i].id === pipeline.definition.id) {
-                            definition = definitions[i];
-                            console.log("Definition found:", definition);
-                            pipelineStatus = definition.queueStatus;
-                            console.log("definition[i].queueStatus:", definition.queueStatus);
-                            console.log("pipelineStatus2:", pipelineStatus);
+                // if (definitions[i].id === pipeline.definition.id) {
+                // definition = definitions[i];
+                // console.log("Definition found:", definition);
+                pipelineStatus = pipeline.queueStatus;
 
+                // Create status icon based on pipeline status
+                // let statusIcon = '';
+                // let statusClass = '';
 
-                            // Create status icon based on pipeline status
-                            let statusIcon = '';
-                            let statusClass = '';
+                // switch (pipeline.status) {
+                //     case 2:
+                //         statusIcon = 'x';
+                //         statusClass = 'error-circle';
+                //         break;
+                //     case 1:
+                //         statusIcon = '✓';
+                //         statusClass = 'success-circle';
+                //         break;
+                //     case 'running':
+                //         statusIcon = '⟳';
+                //         statusClass = 'running-circle';
+                //         break;
+                //     default:
+                //         statusIcon = '?';
+                //         statusClass = 'unknown-circle';
+                // }
 
-                            switch (pipeline.status) {
-                                case 2:
-                                    statusIcon = 'x';
-                                    statusClass = 'error-circle';
-                                    break;
-                                case 1:
-                                    statusIcon = '✓';
-                                    statusClass = 'success-circle';
-                                    break;
-                                // case 'running':
-                                //     statusIcon = '⟳';
-                                //     statusClass = 'running-circle';
-                                //     break;
-                                default:
-                                    statusIcon = '?';
-                                    statusClass = 'unknown-circle';
-                            }
+                let definitionStatusText = '';
+                let definitionStatusClass = '';
+                console.log("pipelineStatus3:", pipelineStatus);
+                switch (pipelineStatus) {
+                    case 0:
+                        definitionStatusText = '';
+                        break;
+                    case 1:
+                        definitionStatusText = 'PAUSED';
+                        definitionStatusClass = 'pipeline-paused';
+                        break;
+                    case 2:
+                        definitionStatusText = 'DISABLED';
+                        definitionStatusClass = 'pipeline-disabled';
+                        break;
+                    default:
+                        definitionStatusText = '';
+                }
 
-                            let statusText = '';
-                            let definitionStatusClass = '';
-                            console.log("pipelineStatus3:", pipelineStatus);
-                            switch (pipelineStatus) {
-                                case 0:
-                                    statusText = '';
-                                    break;
-                                case 1:
-                                    statusText = 'PAUSED';
-                                    definitionStatusClass = 'pipeline-paused';
-                                    break;
-                                case 2:
-                                    statusText = 'DISABLED';
-                                    definitionStatusClass = 'pipeline-disabled';
-                                    break;
-                                default:
-                                    statusText = '';
-                            }
-
-                            pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
-                            pipelineItem.innerHTML = `
-                <div class="${statusClass}">${statusIcon}</div>
-                <div class="pipeline-info">
-                    <div class="pipeline-name">${pipeline.definition.name}</div>
-                    <div class="pipeline-details">
-                        <span class="pipeline-id">${pipeline.buildNumber}</span>
-                        <span class="pipeline-description">${pipeline.triggerInfo['ci.message']}</span>
-                        <span class="pipeline-description"><b>${statusText}</b></span>
-                    </div>
-                </div>
-            `;
-                            break
-                        }
-                    }
-                }).catch((error) => {
-                    console.error("Error fetching definitions:", error);
-                });
+                pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
+                // <div class="${statusClass}">${statusIcon}</div>
+                // <span class="pipeline-id">${pipeline.buildNumber}</span>
+                pipelineItem.innerHTML = `
+                            <div class="pipeline-info">
+                                <div style="width:15%"><span class="pipeline-status"><b>${definitionStatusText}</b></span></div>
+                                <div class="pipeline-details-container">
+                                    <a href="${pipelineURL}" class="pipeline-link" target="_blank">
+                                        <div class="pipeline-name">${pipeline.name}</div>
+                                    </a>
+                                </div>
+                                <div style="min-width: 210px;">
+                                    <img src="${pipeline._links.badge.href}" alt="Pipeline Badge" />
+                                </div>
+                            </div>`;
 
                 return pipelineItem;
             }
 
-            buildClient.getBuilds(projectId).then((builds) => {
-                console.log("Builds:", builds);
-                for (let i = 0; i < builds.length; i++) {
-                    console.log("Build ID:", builds[i].id);
-                    console.log("Build Name:", builds[i].definition.name);
-                    console.log("definition id:", builds[i].definition.id);
 
-                    const pipelineItem = createPipelineItem(builds[i]);
+            buildClient.getDefinitions(projectId).then((definitions) => {
+                console.log("Definitions:", definitions);
+                for (let i = 0; i < definitions.length; i++) {
+                    console.log("Definition Name:", definitions[i].name);
+
+                    const pipelineItem = createPipelineItem(definitions[i]);
                     pipelineList.appendChild(pipelineItem);
                 }
-
             }).catch((error) => {
-                console.error("Error fetching builds:", error);
+                console.error("Error fetching definitions:", error);
             });
+
+
+            // buildClient.getBuilds(projectId).then((builds) => {
+            //     console.log("Builds:", builds);
+            //     for (let i = 0; i < builds.length; i++) {
+            //         console.log("Build ID:", builds[i].id);
+            //         console.log("Build Name:", builds[i].definition.name);
+            //         console.log("definition id:", builds[i].definition.id);
+
+            //     }
+
+            // }).catch((error) => {
+            //     console.error("Error fetching builds:", error);
+            // });
 
 
             // buildClient.getDefinition(projectId, 2).then((definition) => {
@@ -193,7 +197,9 @@
             </div>
 
             <div class="table-header">
-                <div class="table-header-text">Name</div>
+                <div class="table-header-text" style="width: 15%;">Status</div>
+                <div class="table-header-text" style="width: 100%;">Name</div>
+                <div class="table-header-text" style="min-width: 210px;">Last build status</div>
             </div>
 
             <div class="pipeline-list" id="pipelineList"></div>
