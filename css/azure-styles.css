@@ -42,8 +42,8 @@
 
  .pipeline-details-container {
      display: flex;
-     width: 100%;
      position: relative;
+     flex: 4;
  }
 
  .new-pipeline-btn {
@@ -265,4 +265,48 @@
      color: white;
      font-size: 12px;
      font-weight: bold;
+ }
+
+ .pipeline-nested {
+     padding-left: 10px;
+     border-left: 1px dotted;
+     margin-left: 20px;
+ }
+
+ .pipeline-folder-link {
+     margin: 2px;
+     display: flex;
+     cursor: pointer;
+ }
+
+ .reload-icon {
+     width: 20px;
+     height: 20px;
+     margin-left: 10px;
+     color: #0078d4;
+     cursor: pointer;
+ }
+
+ @keyframes spin {
+     from {
+         transform: rotate(0deg);
+     }
+
+     to {
+         transform: rotate(360deg);
+     }
+ }
+
+ .rotate-animation {
+     width: 20px;
+     height: 20px;
+     animation-name: spin;
+     animation-duration: 4s;
+     animation-timing-function: linear;
+     animation-iteration-count: infinite;
+ }
+
+ .badge-icon {
+     max-width: 250px;
+     height: 20px;
  }

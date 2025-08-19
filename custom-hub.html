@@ -10,6 +10,209 @@
             usePlatformStyles: true
         });
 
+        function reloadPipelineRun(pipelineId) {
+            console.log("Reloading pipeline run...", pipelineId);
+
+            VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
+                const projectId = VSS.getWebContext().project.id;
+                console.log("Project ID:", projectId);
+                let params = {
+                    "definition": {
+                        "id": pipelineId
+                    },
+                    "sourceBranch": "refs/heads/main"// Or your desired branch
+                    // ,"parameters": "{\"myVariable\":\"myValue\"}" // Optional: to override pipeline variables
+                }
+
+                function reloadBadge(counter = 0, build, pipelineId) {
+                    setTimeout(() => {
+                        console.log("Reloading badge for build:", build);
+
+                        if (counter > 10) {
+                            console.log("Stopping badge reload after 10 attempts.");
+                            return;
+                        }
+
+                        if (build.status == 2) {
+                            console.log("Stopping badge reload after new build status:", build.status);
+
+                            const reloadImage = document.getElementById('reload-image-' + pipelineId);
+                            reloadImage.classList.remove('rotate-animation');
+
+                            const pipelineBadge = document.getElementById(pipelineId + '-badge');
+                            pipelineBadge.src = build._links.badge.href + '?' + new Date().getTime();
+                            return;
+                        }
+
+                        if (build.status != 2) {
+                            buildClient.getBuild(build.id, projectId).then((updatedBuild) => {
+                                // const pipelineBadge = document.getElementById(pipelineId + '-badge');
+                                // pipelineBadge.src = 'img/loading.gif'; // Show loading image while fetching new badge
+
+                                counter++;
+                                reloadBadge(counter, updatedBuild, pipelineId, build._links.badge.href);
+                            }).catch((error) => {
+                                console.error("Error fetching updated build:", error);
+                            });
+                        }
+
+                    }, 1000);
+                }
+
+                let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient2);
+
+                // const queueBuild = await buildClient.queueBuild(params, projectId);
+                // console.log("Pipeline run queued successfully:", queueBuild);
+                buildClient.queueBuild(params, projectId).then((build) => {
+                    console.log("Pipeline run queued successfully:", build);
+                    // Optionally, you can update the UI to reflect the new pipeline run
+                    // For example, you could refresh the pipeline list or show a success message
+                    const reloadImage = document.getElementById('reload-image-' + pipelineId)
+                    // pipelineBadge.src = 'img/tick-64.png'; // Update the badge image
+
+                    // const pipelineBadge = document.getElementById(pipelineId + '-badge');
+                    // pipelineBadge.src = 'img/loading.gif'; // Show loading image while fetching new badge
+
+                    reloadImage.classList.add('rotate-animation');
+                    reloadBadge(0, build, pipelineId);
+
+                }).catch((error) => {
+                    console.error("Error queuing pipeline run:", error);
+                });
+            });
+            // alert("Reloading pipeline run...");
+        }
+
+        // Function to create a pipeline item element
+        function createPipelineItem(pipeline, nested = false) {
+
+            let pipelineStatus = 0;
+            let definition = {};
+
+            // use _links to get the URL for the pipeline and badge
+            const pipelineURL = pipeline._links.web.href;
+            const pipelineItem = document.createElement('div');
+            // if (definitions[i].id === pipeline.definition.id) {
+            // definition = definitions[i];
+            // console.log("Definition found:", definition);
+            pipelineStatus = pipeline.queueStatus;
+
+            // Create status icon based on pipeline status
+            // let statusIcon = '';
+            // let statusClass = '';
+
+            // switch (pipeline.status) {
+            //     case 2:
+            //         statusIcon = 'x';
+            //         statusClass = 'error-circle';
+            //         break;
+            //     case 1:
+            //         statusIcon = '✓';
+            //         statusClass = 'success-circle';
+            //         break;
+            //     case 'running':
+            //         statusIcon = '⟳';
+            //         statusClass = 'running-circle';
+            //         break;
+            //     default:
+            //         statusIcon = '?';
+            //         statusClass = 'unknown-circle';
+            // }
+
+            let definitionStatusText = '';
+            let definitionStatusClass = '';
+            let reloadIcon = '';
+
+            switch (pipelineStatus) {
+                case 0:
+                    definitionStatusText = '';
+                    reloadIcon = `<img src="img/reload-icon-20.png" class="reload-icon" alt="Pipeline Reload" onclick="reloadPipelineRun(${pipeline.id});" id="reload-image-${pipeline.id}"/>`;
+                    break;
+                case 1:
+                    definitionStatusText = 'PAUSED';
+                    definitionStatusClass = 'pipeline-paused';
+                    break;
+                case 2:
+                    definitionStatusText = 'DISABLED';
+                    definitionStatusClass = 'pipeline-disabled';
+                    break;
+                default:
+                    definitionStatusText = '';
+            }
+
+            pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
+
+            const nestedClass = nested ? 'pipeline-nested' : '';
+
+            // <div class="${statusClass}">${statusIcon}</div>
+            // <span class="pipeline-id">${pipeline.buildNumber}</span>
+            pipelineItem.innerHTML = `
+                            <div class="pipeline-info">
+                                <div class="pipeline-details-container ${nestedClass}">
+                                    <a href="${pipelineURL}" class="pipeline-link" target="_blank">
+                                        <div class="pipeline-name">${pipeline.name}</div>
+                                    </a>
+                                </div>
+                                <div style="flex: 1;"><span class="pipeline-status"><b>${definitionStatusText}</b></span></div>
+                                <div style="min-width: 210px;">
+                                    <span><img src="${pipeline._links.badge.href}" alt="Pipeline Badge" id="${pipeline.id + '-badge'}" class="badge-icon"/></span>
+                                    <span>${reloadIcon}</span>
+                                </div>
+                            </div>`;
+
+            return pipelineItem;
+        }
+
+        function loadPipelinesInFolder(folderPath) {
+            // This function can be used to load pipeline folders if needed
+
+            const folderNameNoSpace = folderPath.replaceAll(' ', '');
+            console.log("Loading pipeline folders...", folderPath);
+            const arrowIcon = document.getElementById('openCloseIcon');
+
+            const pipelineFolderContentList = document.getElementById('pipeline-folder-contents-' + folderNameNoSpace);
+            console.log("pipelineFolderContentList:", pipelineFolderContentList);
+
+            const isVisible = pipelineFolderContentList.checkVisibility();
+            if (arrowIcon) {
+                arrowIcon.src = isVisible ? 'img/to-right.png' : 'img/to-down.png';
+            }
+
+            pipelineFolderContentList.classList.toggle('hidden');
+
+            if (!isVisible) {
+                // pipelineFolderList.children.classList.toggle('hidden');
+
+                const isAlreadyLoaded = pipelineFolderContentList.children.length > 0;
+                if (isAlreadyLoaded) {
+                    console.log("Pipeline folder content already loaded.");
+                    return false; // Prevent default link behavior
+                }
+                VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
+                    const projectId = VSS.getWebContext().project.id;
+                    const organizationName = VSS.getWebContext().account.name;
+
+                    let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
+                    let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
+
+                    buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + folderPath).then((definitions) => {
+                        console.log("Definitions:", definitions);
+                        for (let i = 0; i < definitions.length; i++) {
+                            console.log("Definition Name:", definitions[i].name);
+                            const pipelineItem = createPipelineItem(definitions[i], true);
+
+                            pipelineFolderContentList.appendChild(pipelineItem);
+                        }
+                    }).catch((error) => {
+                        console.error("Error fetching definitions:", error);
+                    });
+                });
+
+            }
+
+            return false; // Prevent default link behavior
+        }
+
         VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
             // GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?orderBy={orderBy}&$top={$top}&continuationToken={continuationToken}&api-version=7.1
             // GET https://dev.azure.com/{organization}/{project}/_apis/build/definitions?api-version=7.1
@@ -22,121 +225,64 @@
             console.log("VSS_Service:", VSS_Service);
             console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
 
-            let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient2_2);
+            let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
+            let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
+            console.log("commonMethods:", commonMethods);
+            console.log("buildClient:", commonMethods.getFolders);
+            const folders = await commonMethods.getFolders(projectId);
+            console.log("Folders:", folders);
 
-            const pipelineData = [
-                {
-                    name: "springboot-actuator-sample",
-                    id: "#20250810.1",
-                    description: "Set up CI with Azure Pipelines",
-                    status: "error"
-                },
-                {
-                    name: "webapp-deployment",
-                    id: "#20250809.3",
-                    description: "Deploy web application to Azure",
-                    status: "success"
-                },
-                {
-                    name: "api-tests",
-                    id: "#20250808.2",
-                    description: "Run automated API tests",
-                    status: "running"
-                },
-                {
-                    name: "database-migration",
-                    id: "#20250807.1",
-                    description: "Update database schema",
-                    status: "success"
+            folders.forEach(folder => {
+                if (folder.path === '\\') {
+                    buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\").then((definitions) => {
+                        console.log("Definitions:", definitions);
+                        for (let i = 0; i < definitions.length; i++) {
+                            console.log("Definition Name:", definitions[i].name);
+
+                            const pipelineItem = createPipelineItem(definitions[i]);
+                            pipelineList.appendChild(pipelineItem);
+                        }
+                    }).catch((error) => {
+                        console.error("Error fetching definitions:", error);
+                    });
                 }
-            ];
+                else {
+                    console.log("Folder Path:", folder.path);
+                    const pipelineItem = createPipelineFolder(folder);
+                    pipelineList.appendChild(pipelineItem);
+                }
+            });
 
-            // Function to create a pipeline item element
-            function createPipelineItem(pipeline) {
-
-                let pipelineStatus = 0;
-                let definition = {};
-
-                // use _links to get the URL for the pipeline and badge
-                const pipelineURL = pipeline._links.web.href;
+            function createPipelineFolder(pipelineFolder) {
                 const pipelineItem = document.createElement('div');
-                // if (definitions[i].id === pipeline.definition.id) {
-                // definition = definitions[i];
-                // console.log("Definition found:", definition);
-                pipelineStatus = pipeline.queueStatus;
+                const rawFolderPath = pipelineFolder.path.substring(1, pipelineFolder.path.length);
+                const folderName = pipelineFolder.path.substring(1, pipelineFolder.path.length).replaceAll(' ', '');
+                pipelineItem.id = 'pipeline-folder-' + folderName;
 
-                // Create status icon based on pipeline status
-                // let statusIcon = '';
-                // let statusClass = '';
-
-                // switch (pipeline.status) {
-                //     case 2:
-                //         statusIcon = 'x';
-                //         statusClass = 'error-circle';
-                //         break;
-                //     case 1:
-                //         statusIcon = '✓';
-                //         statusClass = 'success-circle';
-                //         break;
-                //     case 'running':
-                //         statusIcon = '⟳';
-                //         statusClass = 'running-circle';
-                //         break;
-                //     default:
-                //         statusIcon = '?';
-                //         statusClass = 'unknown-circle';
-                // }
-
-                let definitionStatusText = '';
-                let definitionStatusClass = '';
-                console.log("pipelineStatus3:", pipelineStatus);
-                switch (pipelineStatus) {
-                    case 0:
-                        definitionStatusText = '';
-                        break;
-                    case 1:
-                        definitionStatusText = 'PAUSED';
-                        definitionStatusClass = 'pipeline-paused';
-                        break;
-                    case 2:
-                        definitionStatusText = 'DISABLED';
-                        definitionStatusClass = 'pipeline-disabled';
-                        break;
-                    default:
-                        definitionStatusText = '';
-                }
-
-                pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
-                // <div class="${statusClass}">${statusIcon}</div>
-                // <span class="pipeline-id">${pipeline.buildNumber}</span>
                 pipelineItem.innerHTML = `
-                            <div class="pipeline-info">
-                                <div style="width:15%"><span class="pipeline-status"><b>${definitionStatusText}</b></span></div>
-                                <div class="pipeline-details-container">
-                                    <a href="${pipelineURL}" class="pipeline-link" target="_blank">
-                                        <div class="pipeline-name">${pipeline.name}</div>
-                                    </a>
-                                </div>
-                                <div style="min-width: 210px;">
-                                    <img src="${pipeline._links.badge.href}" alt="Pipeline Badge" />
-                                </div>
-                            </div>`;
+                                    <div class="pipeline-details-container">
+                                        <div class="pipeline-folder-link" onclick="return loadPipelinesInFolder('${rawFolderPath}');">
+                                            <span class=""><img src="img/to-right.png" alt="Open Close Icon" class="folder-icon" id="openCloseIcon"/></span>
+                                            <span class=""><img src="img/group-icon.png" alt="Folder Icon" class="folder-icon" /></span>
+                                            <div class="pipeline-name">${rawFolderPath}</div>
+                                        </div>
+                                    </div>
+                                    <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}"></div>`;
 
                 return pipelineItem;
             }
 
+            // buildClient.getDefinitions(projectId).then((definitions) => {
+            //     console.log("Definitions:", definitions);
+            //     for (let i = 0; i < definitions.length; i++) {
+            //         console.log("Definition Name:", definitions[i].name);
 
-            buildClient.getDefinitions(projectId).then((definitions) => {
-                console.log("Definitions:", definitions);
-                for (let i = 0; i < definitions.length; i++) {
-                    console.log("Definition Name:", definitions[i].name);
-
-                    const pipelineItem = createPipelineItem(definitions[i]);
-                    pipelineList.appendChild(pipelineItem);
-                }
-            }).catch((error) => {
-                console.error("Error fetching definitions:", error);
-            });
+            //         const pipelineItem = createPipelineItem(definitions[i]);
+            //         pipelineList.appendChild(pipelineItem);
+            //     }
+            // }).catch((error) => {
+            //     console.error("Error fetching definitions:", error);
+            // });
 
 
             // buildClient.getBuilds(projectId).then((builds) => {
@@ -167,6 +313,7 @@
 
             VSS.notifyLoadSucceeded();
         });
+
     </script>
 </head>
 
@@ -197,8 +344,8 @@
             </div>
 
             <div class="table-header">
-                <div class="table-header-text" style="width: 15%;">Status</div>
-                <div class="table-header-text" style="width: 100%;">Name</div>
+                <div class="table-header-text" style="flex:4;">Name</div>
+                <div class="table-header-text" style="flex:1;">Status</div>
                 <div class="table-header-text" style="min-width: 210px;">Last build status</div>
             </div>
 
