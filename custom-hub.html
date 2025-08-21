@@ -11,31 +11,21 @@
         });
 
         function reloadPipelineRun(pipelineId) {
-            console.log("Reloading pipeline run...", pipelineId);
-
             VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
                 const projectId = VSS.getWebContext().project.id;
-                console.log("Project ID:", projectId);
                 let params = {
                     "definition": {
                         "id": pipelineId
                     },
-                    "sourceBranch": "refs/heads/main"// Or your desired branch
-                    // ,"parameters": "{\"myVariable\":\"myValue\"}" // Optional: to override pipeline variables
+                    "sourceBranch": "refs/heads/main"
                 }
+                const reloadImage = document.getElementById('reload-image-' + pipelineId)
+                reloadImage.classList.add('rotate-animation');
 
                 function reloadBadge(counter = 0, build, pipelineId) {
                     setTimeout(() => {
-                        console.log("Reloading badge for build:", build);
-
-                        if (counter > 10) {
-                            console.log("Stopping badge reload after 10 attempts.");
-                            return;
-                        }
-
                         if (build.status == 2) {
-                            console.log("Stopping badge reload after new build status:", build.status);
-
+                            console.log("Build completed");
                             const reloadImage = document.getElementById('reload-image-' + pipelineId);
                             reloadImage.classList.remove('rotate-animation');
 
@@ -46,117 +36,70 @@
 
                         if (build.status != 2) {
                             buildClient.getBuild(build.id, projectId).then((updatedBuild) => {
-                                // const pipelineBadge = document.getElementById(pipelineId + '-badge');
-                                // pipelineBadge.src = 'img/loading.gif'; // Show loading image while fetching new badge
-
                                 counter++;
                                 reloadBadge(counter, updatedBuild, pipelineId, build._links.badge.href);
                             }).catch((error) => {
                                 console.error("Error fetching updated build:", error);
                             });
                         }
-
                     }, 1000);
                 }
 
                 let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient2);
-
-                // const queueBuild = await buildClient.queueBuild(params, projectId);
-                // console.log("Pipeline run queued successfully:", queueBuild);
                 buildClient.queueBuild(params, projectId).then((build) => {
-                    console.log("Pipeline run queued successfully:", build);
-                    // Optionally, you can update the UI to reflect the new pipeline run
-                    // For example, you could refresh the pipeline list or show a success message
-                    const reloadImage = document.getElementById('reload-image-' + pipelineId)
-                    // pipelineBadge.src = 'img/tick-64.png'; // Update the badge image
-
-                    // const pipelineBadge = document.getElementById(pipelineId + '-badge');
-                    // pipelineBadge.src = 'img/loading.gif'; // Show loading image while fetching new badge
-
-                    reloadImage.classList.add('rotate-animation');
                     reloadBadge(0, build, pipelineId);
-
                 }).catch((error) => {
                     console.error("Error queuing pipeline run:", error);
                 });
             });
-            // alert("Reloading pipeline run...");
         }
 
         // Function to create a pipeline item element
         function createPipelineItem(pipeline, nested = false) {
 
-            let pipelineStatus = 0;
-            let definition = {};
+            let pipelineStatus = pipeline.queueStatus;
 
             // use _links to get the URL for the pipeline and badge
             const pipelineURL = pipeline._links.web.href;
             const pipelineItem = document.createElement('div');
-            // if (definitions[i].id === pipeline.definition.id) {
-            // definition = definitions[i];
-            // console.log("Definition found:", definition);
-            pipelineStatus = pipeline.queueStatus;
-
-            // Create status icon based on pipeline status
-            // let statusIcon = '';
-            // let statusClass = '';
-
-            // switch (pipeline.status) {
-            //     case 2:
-            //         statusIcon = 'x';
-            //         statusClass = 'error-circle';
-            //         break;
-            //     case 1:
-            //         statusIcon = '✓';
-            //         statusClass = 'success-circle';
-            //         break;
-            //     case 'running':
-            //         statusIcon = '⟳';
-            //         statusClass = 'running-circle';
-            //         break;
-            //     default:
-            //         statusIcon = '?';
-            //         statusClass = 'unknown-circle';
-            // }
-
             let definitionStatusText = '';
             let definitionStatusClass = '';
             let reloadIcon = '';
+            const nestedClass = nested ? 'pipeline-nested' : '';
+            const clearedURL = pipelineURL.substring(0, pipelineURL.lastIndexOf('/'));
+            const lastBuildURL = clearedURL + '/latest/' + pipeline.id;
 
             switch (pipelineStatus) {
                 case 0:
                     definitionStatusText = '';
-                    reloadIcon = `<img src="img/reload-icon-20.png" class="reload-icon" alt="Pipeline Reload" onclick="reloadPipelineRun(${pipeline.id});" id="reload-image-${pipeline.id}"/>`;
+                    reloadIcon = `<img src="img/reload-icon-20.png" class="reload-icon" title="Run" alt="Pipeline Reload" onclick="reloadPipelineRun(${pipeline.id});" id="reload-image-${pipeline.id}"/>`;
                     break;
                 case 1:
-                    definitionStatusText = 'PAUSED';
-                    definitionStatusClass = 'pipeline-paused';
+                    definitionStatusText = 'Pipeline is paused';
+                    definitionStatusClass = 'img/crisis.png';
                     break;
                 case 2:
-                    definitionStatusText = 'DISABLED';
-                    definitionStatusClass = 'pipeline-disabled';
+                    definitionStatusText = 'Pipeline is disabled';
+                    definitionStatusClass = 'img/forbidden.png';
                     break;
                 default:
                     definitionStatusText = '';
             }
 
-            pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
+            pipelineItem.className = 'pipeline-item';
 
-            const nestedClass = nested ? 'pipeline-nested' : '';
-
-            // <div class="${statusClass}">${statusIcon}</div>
-            // <span class="pipeline-id">${pipeline.buildNumber}</span>
             pipelineItem.innerHTML = `
                             <div class="pipeline-info">
-                                <div class="pipeline-details-container ${nestedClass}">
+                                <div class="pipeline-details-container">
                                     <a href="${pipelineURL}" class="pipeline-link" target="_blank">
-                                        <div class="pipeline-name">${pipeline.name}</div>
+                                        <div class="pipeline-name ${nestedClass}">${pipeline.name}</div>
                                     </a>
                                 </div>
-                                <div style="flex: 1;"><span class="pipeline-status"><b>${definitionStatusText}</b></span></div>
-                                <div style="min-width: 210px;">
-                                    <span><img src="${pipeline._links.badge.href}" alt="Pipeline Badge" id="${pipeline.id + '-badge'}" class="badge-icon"/></span>
-                                    <span>${reloadIcon}</span>
+                                <div style="flex: 1;"><span class="pipeline-status"><img src="${definitionStatusClass}" alt="${definitionStatusText}"  title="${definitionStatusText}"></span></div>
+                                <div class="pipeline-status-badge">
+                                    <a href="${lastBuildURL}" target="_blank">
+                                        <span><img src="${pipeline._links.badge.href}" alt="Pipeline Badge" id="${pipeline.id + '-badge'}" class="badge-icon" /></span>
+                                    </a><span>${reloadIcon}</span>
                                 </div>
                             </div>`;
 
@@ -165,13 +108,10 @@
 
         function loadPipelinesInFolder(folderPath) {
             // This function can be used to load pipeline folders if needed
-
             const folderNameNoSpace = folderPath.replaceAll(' ', '');
-            console.log("Loading pipeline folders...", folderPath);
             const arrowIcon = document.getElementById('openCloseIcon');
 
             const pipelineFolderContentList = document.getElementById('pipeline-folder-contents-' + folderNameNoSpace);
-            console.log("pipelineFolderContentList:", pipelineFolderContentList);
 
             const isVisible = pipelineFolderContentList.checkVisibility();
             if (arrowIcon) {
@@ -181,8 +121,6 @@
             pipelineFolderContentList.classList.toggle('hidden');
 
             if (!isVisible) {
-                // pipelineFolderList.children.classList.toggle('hidden');
-
                 const isAlreadyLoaded = pipelineFolderContentList.children.length > 0;
                 if (isAlreadyLoaded) {
                     console.log("Pipeline folder content already loaded.");
@@ -190,55 +128,52 @@
                 }
                 VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
                     const projectId = VSS.getWebContext().project.id;
-                    const organizationName = VSS.getWebContext().account.name;
-
                     let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
-                    let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
 
                     buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + folderPath).then((definitions) => {
-                        console.log("Definitions:", definitions);
                         for (let i = 0; i < definitions.length; i++) {
-                            console.log("Definition Name:", definitions[i].name);
                             const pipelineItem = createPipelineItem(definitions[i], true);
-
                             pipelineFolderContentList.appendChild(pipelineItem);
                         }
                     }).catch((error) => {
                         console.error("Error fetching definitions:", error);
                     });
                 });
-
             }
 
             return false; // Prevent default link behavior
         }
 
+
+        function createPipelineFolder(pipelineFolder) {
+            const pipelineItem = document.createElement('div');
+            const rawFolderPath = pipelineFolder.path.substring(1, pipelineFolder.path.length);
+            const folderName = pipelineFolder.path.substring(1, pipelineFolder.path.length).replaceAll(' ', '');
+            pipelineItem.id = 'pipeline-folder-' + folderName;
+
+            pipelineItem.innerHTML = `
+                <div class="pipeline-details-container">
+                    <div class="pipeline-folder-link" onclick="return loadPipelinesInFolder('${rawFolderPath}');">
+                        <span class=""><img src="img/to-right.png" alt="Open Close Icon" class="folder-icon" id="openCloseIcon"/></span>
+                        <span class=""><img src="img/group-icon.png" alt="Folder Icon" class="folder-icon" /></span>
+                        <div class="pipeline-folder-name">${rawFolderPath}</div>
+                    </div>
+                </div>
+                <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}"></div>`;
+
+            return pipelineItem;
+        }
+
         VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
-            // GET https://dev.azure.com/{organization}/{project}/_apis/pipelines?orderBy={orderBy}&$top={$top}&continuationToken={continuationToken}&api-version=7.1
-            // GET https://dev.azure.com/{organization}/{project}/_apis/build/definitions?api-version=7.1
-            // VSS.register("CustomHub", function () {
             const projectId = VSS.getWebContext().project.id;
-            console.log("Project ID:", projectId);
-
-            const organizationName = VSS.getWebContext().account.name;
-            console.log("Organization Name:", organizationName);
-            console.log("VSS_Service:", VSS_Service);
-            console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
-
             let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
             let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
-            console.log("commonMethods:", commonMethods);
-            console.log("buildClient:", commonMethods.getFolders);
             const folders = await commonMethods.getFolders(projectId);
-            console.log("Folders:", folders);
 
             folders.forEach(folder => {
                 if (folder.path === '\\') {
                     buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\").then((definitions) => {
-                        console.log("Definitions:", definitions);
                         for (let i = 0; i < definitions.length; i++) {
-                            console.log("Definition Name:", definitions[i].name);
-
                             const pipelineItem = createPipelineItem(definitions[i]);
                             pipelineList.appendChild(pipelineItem);
                         }
@@ -247,69 +182,10 @@
                     });
                 }
                 else {
-                    console.log("Folder Path:", folder.path);
                     const pipelineItem = createPipelineFolder(folder);
                     pipelineList.appendChild(pipelineItem);
                 }
             });
-
-            function createPipelineFolder(pipelineFolder) {
-                const pipelineItem = document.createElement('div');
-                const rawFolderPath = pipelineFolder.path.substring(1, pipelineFolder.path.length);
-                const folderName = pipelineFolder.path.substring(1, pipelineFolder.path.length).replaceAll(' ', '');
-                pipelineItem.id = 'pipeline-folder-' + folderName;
-
-                pipelineItem.innerHTML = `
-                                    <div class="pipeline-details-container">
-                                        <div class="pipeline-folder-link" onclick="return loadPipelinesInFolder('${rawFolderPath}');">
-                                            <span class=""><img src="img/to-right.png" alt="Open Close Icon" class="folder-icon" id="openCloseIcon"/></span>
-                                            <span class=""><img src="img/group-icon.png" alt="Folder Icon" class="folder-icon" /></span>
-                                            <div class="pipeline-name">${rawFolderPath}</div>
-                                        </div>
-                                    </div>
-                                    <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}"></div>`;
-
-                return pipelineItem;
-            }
-
-            // buildClient.getDefinitions(projectId).then((definitions) => {
-            //     console.log("Definitions:", definitions);
-            //     for (let i = 0; i < definitions.length; i++) {
-            //         console.log("Definition Name:", definitions[i].name);
-
-            //         const pipelineItem = createPipelineItem(definitions[i]);
-            //         pipelineList.appendChild(pipelineItem);
-            //     }
-            // }).catch((error) => {
-            //     console.error("Error fetching definitions:", error);
-            // });
-
-
-            // buildClient.getBuilds(projectId).then((builds) => {
-            //     console.log("Builds:", builds);
-            //     for (let i = 0; i < builds.length; i++) {
-            //         console.log("Build ID:", builds[i].id);
-            //         console.log("Build Name:", builds[i].definition.name);
-            //         console.log("definition id:", builds[i].definition.id);
-
-            //     }
-
-            // }).catch((error) => {
-            //     console.error("Error fetching builds:", error);
-            // });
-
-
-            // buildClient.getDefinition(projectId, 2).then((definition) => {
-            //     console.log("Definition:", definition);
-            //     console.log("Definition Name:", definition.name);
-            //     console.log("Definition ID:", definition.id);
-            //     console.log("Definition queueStatus:", definition.queueStatus);
-            //     // pipelineStatus = definition.queueStatus;
-            //     // console.log("pipelineStatus1:", pipelineStatus);
-            // }).catch((error) => {
-            //     console.error("Error fetching definition:", error);
-            // });
-
 
             VSS.notifyLoadSucceeded();
         });
@@ -321,35 +197,22 @@
     <div class="container">
         <div class="header">
             <h1 class="page-title">Pipelines</h1>
-            <div class="header-actions">
-                <button class="new-pipeline-btn">New pipeline</button>
-            </div>
         </div>
 
-        <div class="nav-section">
-            <div class="nav-tabs">
-                <button class="nav-tab">Recent</button>
-                <button class="nav-tab active">All</button>
-                <button class="nav-tab">Runs</button>
-            </div>
-            <div class="filter-section">
-                <input type="text" class="filter-input" placeholder="Filter pipelines">
-            </div>
-        </div>
+        <div class="content-container">
+            <div class="content-section-extension">
+                <div class="section-header">
+                    <h2 class="section-title">All pipelines</h2>
+                </div>
 
-        <div class="content-section">
-            <div class="section-header">
-                <h2 class="section-title">All pipelines</h2>
-                <button class="new-folder-btn">New folder</button>
-            </div>
+                <div class="table-header">
+                    <div class="table-header-text" style="flex:4;">Name</div>
+                    <div class="table-header-text" style="flex:1;">Status</div>
+                    <div class="table-header-text pipeline-status-badge">Last build status</div>
+                </div>
 
-            <div class="table-header">
-                <div class="table-header-text" style="flex:4;">Name</div>
-                <div class="table-header-text" style="flex:1;">Status</div>
-                <div class="table-header-text" style="min-width: 210px;">Last build status</div>
+                <div class="pipeline-list" id="pipelineList"></div>
             </div>
-
-            <div class="pipeline-list" id="pipelineList"></div>
         </div>
     </div>
 </body>

@@ -6,12 +6,11 @@
 
  body {
      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-     background-color: #f8f9fa;
+     background-color: rgba(248, 248, 248, 1) !important;
      color: #323130;
  }
 
  .container {
-     max-width: 1400px;
      margin: 0 auto;
      padding: 20px;
  }
@@ -51,7 +50,7 @@
      color: white;
      border: none;
      padding: 8px 16px;
-     border-radius: 4px;
+     border-radius: 2px;
      font-size: 14px;
      font-weight: 500;
      cursor: pointer;
@@ -133,11 +132,15 @@
      color: #605e5c;
  }
 
- .content-section {
+ .content-section-extension {
      background: white;
      border-radius: 6px;
-     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+     box-shadow: 0 1px 4px rgba(248, 248, 248, 1);
      overflow: hidden;
+ }
+
+ .content-container {
+     box-shadow: 0 3.2px 7.2px 0 rgba(0, 0, 0, .132), 0 .6px 1.8px 0 rgba(0, 0, 0, .108);
  }
 
  .section-header {
@@ -157,9 +160,11 @@
  .new-folder-btn {
      background: none;
      border: 1px solid #d1d1d1;
+     background-color: rgba(0, 0, 0, .06);
+     border: none;
      color: #323130;
      padding: 6px 12px;
-     border-radius: 4px;
+     border-radius: 2px;
      font-size: 14px;
      cursor: pointer;
      transition: all 0.2s;
@@ -217,20 +222,36 @@
      margin-bottom: 2px;
  }
 
+ .pipeline-folder-name {
+     font-size: 16px;
+     font-weight: bold;
+     color: #323130;
+     gap: 5px;
+ }
+
  .pipeline-disabled {
-     background-color: #f6e9eb;
-     opacity: 50%;
+     background-color: #f3f2f1;
+     opacity: 0.6;
  }
 
  .pipeline-paused {
-     background-color: #fff5e5;
-     opacity: 50%;
+     background-color: #fff4ce;
+     opacity: 0.6;
+ }
+
+ .pipeline-status-badge {
+     min-width: 210px;
+     flex: 2;
  }
 
  .pipeline-link {
      display: flex;
      text-decoration: none !important;
      width: 100%;
+ }
+
+ .pipeline-list {
+     background-color: white;
  }
 
  .pipeline-details {
@@ -277,6 +298,7 @@
      margin: 2px;
      display: flex;
      cursor: pointer;
+     margin: 10px 2px 0px 2px;
  }
 
  .reload-icon {
@@ -309,4 +331,8 @@
  .badge-icon {
      max-width: 250px;
      height: 20px;
+ }
+
+ a {
+     text-decoration: none !important;
  }
