@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "azure-devops-extensions-custom-hub",
-    "version": "1.0.216",
+    "version": "1.0.261",
     "name": "Custom Hub",
     "description": "Custom hub for Azure DevOps",
     "publisher": "jriri",
@@ -34,7 +34,8 @@
     ],
     "scopes": [
         "vso.build",
-        "vso.build_execute"
+        "vso.build_execute",
+        "vso.code"
     ],
     "files": [
         {
