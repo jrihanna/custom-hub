@@ -135,7 +135,29 @@ function loadPipelinesInFolder(folderPath) {
 }
 
 
+function loadPipelinesInOpenedFolder(definition) {
+    // This function can be used to load pipeline folders if needed
+    const rawFolderPath = definition.path.substring(1, definition.path.length);
+    const folderNameNoSpace = rawFolderPath.replaceAll(' ', '');
+    const arrowIcon = document.getElementById('openCloseIcon');
+
+    const pipelineFolderContentList = document.getElementById('pipeline-folder-contents-' + folderNameNoSpace);
+
+    const isVisible = pipelineFolderContentList.checkVisibility();
+    if (arrowIcon) {
+        arrowIcon.src = isVisible ? 'img/to-right.png' : 'img/to-down.png';
+    }
+
+    pipelineFolderContentList.classList.toggle('hidden');
+
+    const pipelineItem = createPipelineItem(definition, true);
+    pipelineFolderContentList.appendChild(pipelineItem);
+
+    return false; // Prevent default link behavior
+}
+
 function createPipelineFolder(pipelineFolder) {
+    console.log("Creating folder for path:", pipelineFolder.path);
     const pipelineItem = document.createElement('div');
     const rawFolderPath = pipelineFolder.path.substring(1, pipelineFolder.path.length);
     const folderName = pipelineFolder.path.substring(1, pipelineFolder.path.length).replaceAll(' ', '');
@@ -150,10 +172,14 @@ function createPipelineFolder(pipelineFolder) {
                 </div>
                 <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}"></div>`;
 
-    return pipelineItem;
+
+    pipelineList.prepend(pipelineItem);;
 }
 
 function clearPipelineList() {
     const elementsToDelete = document.querySelectorAll('div.pipeline-item');
     elementsToDelete.forEach(element => element.remove());
+
+    const folderElementsToDelete = document.querySelectorAll('div[id^="pipeline-folder-"]');
+    folderElementsToDelete.forEach(element => element.remove());
 }

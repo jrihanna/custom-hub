@@ -123,6 +123,7 @@ function getFilters() {
     document.querySelectorAll('.dropdown-item.selected').forEach(item => {
         const dropdown = item.closest('.filter-dropdown');
         const filterId = dropdown.querySelector('.dropdown-button').getAttribute('aria-label');
+        console.log('Filter ID:', filterId, 'Value:', item.dataset.value);
         selectedFilters[filterId] = item.dataset.value === 'all' ? null : item.dataset.value;
     });
 
@@ -151,8 +152,17 @@ function onFilterChange() {
 
         buildClient.getDefinitions(projectId, null, selectedFilters.Repository, repoType, null, null, null, null, null, null).then((definitions) => {
             for (let i = 0; i < definitions.length; i++) {
-                const pipelineItem = createPipelineItem(definitions[i]);
-                pipelineList.appendChild(pipelineItem);
+                console.log("Definition:", definitions[i]);
+                if (definitions[i].path !== "\\") {
+                    createPipelineFolder(definitions[i]);
+                    loadPipelinesInOpenedFolder(definitions[i]);
+                }
+
+                else {
+                    const pipelineItem = createPipelineItem(definitions[i]);
+                    pipelineList.appendChild(pipelineItem);
+                }
+
             }
         }).catch((error) => {
             console.error("Error fetching definitions:", error);

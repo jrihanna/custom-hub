@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "azure-devops-extensions-custom-hub",
-    "version": "1.0.261",
+    "version": "1.0.277",
     "name": "Custom Hub",
     "description": "Custom hub for Azure DevOps",
     "publisher": "jriri",
