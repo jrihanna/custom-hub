@@ -43,7 +43,6 @@ function reloadPipelineRun(pipelineId) {
     });
 }
 
-// Function to create a pipeline item element
 function createPipelineItem(pipeline, nested = false) {
 
     let pipelineStatus = pipeline.queueStatus;
@@ -134,7 +133,6 @@ function loadPipelinesInFolder(folderPath) {
     return false; // Prevent default link behavior
 }
 
-
 function loadPipelinesInOpenedFolder(definition) {
     // This function can be used to load pipeline folders if needed
     const rawFolderPath = definition.path.substring(1, definition.path.length);
@@ -182,4 +180,71 @@ function clearPipelineList() {
 
     const folderElementsToDelete = document.querySelectorAll('div[id^="pipeline-folder-"]');
     folderElementsToDelete.forEach(element => element.remove());
+}
+
+function getAllFolders(commonMethods, buildClient, projectId) {
+    commonMethods.getFolders(projectId).then((folders) => {
+
+        const foldersDropdown = document.getElementById("folderDropdown");
+        folders.forEach(folder => {
+
+            let folderPath = folder.path === "\\" ? "Root" : folder.path.replaceAll("\\", "");
+            const folderItem = document.createElement("div");
+            folderItem.className = "dropdown-item";
+            folderItem.setAttribute("data-value", folderPath);
+            folderItem.textContent = folderPath;
+            foldersDropdown.appendChild(folderItem);
+
+            if (folder.path === '\\') {
+                buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\").then((definitions) => {
+                    for (let i = 0; i < definitions.length; i++) {
+                        const pipelineItem = createPipelineItem(definitions[i]);
+                        pipelineList.appendChild(pipelineItem);
+                    }
+                }).catch((error) => {
+                    console.error("Error fetching definitions:", error);
+                });
+            }
+            else {
+                createPipelineFolder(folder);
+                // pipelineList.appendChild(pipelineItem);
+            }
+        });
+    }).catch((error) => {
+        console.error("Error fetching folders:", error);
+    });
+}
+
+function getTags(commonMethods2To5, projectId) {
+    commonMethods2To5.getTags(projectId).then((tags) => {
+        const tagsDropdown = document.getElementById("tagsDropdown");
+        tags.forEach(tag => {
+            const tagItem = document.createElement("div");
+            tagItem.className = "dropdown-item";
+            tagItem.setAttribute("data-value", tag);
+            tagItem.textContent = tag;
+            tagsDropdown.appendChild(tagItem);
+        });
+    }).catch((error) => {
+        console.error("Error fetching tags:", error);
+    });
+}
+
+function initializePipelineList() {
+    clearPipelineList();
+
+    VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient"], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
+        const projectId = VSS.getWebContext().project.id;
+        let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
+        let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
+        let commonMethods2To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods2To5);
+
+        console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
+
+        getAllFolders(commonMethods, buildClient, projectId);
+
+        getTags(commonMethods2To5, projectId);
+
+        VSS.notifyLoadSucceeded();
+    });
 }

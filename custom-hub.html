@@ -4,59 +4,24 @@
 <head>
     <link rel="stylesheet" href="css/azure-styles.css">
     <script src="sdk/scripts/VSS.SDK.min.js"></script>
+    <script src="sdk/scripts/pipelines.js"></script>
     <script type="text/javascript">
         VSS.init({
             explicitNotifyLoaded: true,
             usePlatformStyles: true
         });
 
-        VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient"], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
-            const projectId = VSS.getWebContext().project.id;
-            let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
-            let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
-            let commonMethods2To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods2To5);
+        initializePipelineList();
 
-            console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
-
-            commonMethods.getFolders(projectId).then((folders) => {
-                folders.forEach(folder => {
-                    if (folder.path === '\\') {
-                        buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\").then((definitions) => {
-                            for (let i = 0; i < definitions.length; i++) {
-                                const pipelineItem = createPipelineItem(definitions[i]);
-                                pipelineList.appendChild(pipelineItem);
-                            }
-                        }).catch((error) => {
-                            console.error("Error fetching definitions:", error);
-                        });
-                    }
-                    else {
-                        createPipelineFolder(folder);
-                        // pipelineList.appendChild(pipelineItem);
-                    }
-                });
-            }).catch((error) => {
-                console.error("Error fetching folders:", error);
-            });
-
-            commonMethods2To5.getTags(projectId).then((tags) => {
-                const tagsDropdown = document.getElementById("tagsDropdown");
-                tags.forEach(tag => {
-                    const tagItem = document.createElement("div");
-                    tagItem.className = "dropdown-item";
-                    tagItem.setAttribute("data-value", tag);
-                    tagItem.textContent = tag;
-                    tagsDropdown.appendChild(tagItem);
-                });
-            }).catch((error) => {
-                console.error("Error fetching tags:", error);
-            });
-
-            VSS.notifyLoadSucceeded();
-        });
-
+        function onNameSearchChange() {
+            const searchInput = document.getElementById('searchInput').value;
+            if (searchInput != null && (searchInput.length > 2 || searchInput.length === 0)) {
+                console.log("Search input changed:", searchInput);
+                console.log("Triggering filter change with search input.", searchInput.length);
+                onFilterChange();
+            }
+        }
     </script>
-    <script src="sdk/scripts/pipelines.js"></script>
 </head>
 
 <body>
@@ -67,13 +32,24 @@
         <div>
             <div class="filter-container">
                 <!-- Hamburger menu -->
-                <button class="hamburger-menu" id="hamburgerMenu">
-                </button>
+                <!-- <button class="hamburger-menu" id="hamburgerMenu">
+                </button> -->
 
                 <!-- Search input -->
                 <input type="text" class="search-input" placeholder="Filter by pipeline name or run number"
-                    id="searchInput">
+                    id="searchInput" oninput="onNameSearchChange()" aria-label="SearchName" />
                 <div class="divider"></div>
+
+                <!-- Folders filter dropdown -->
+                <div class="filter-dropdown">
+                    <button class="dropdown-button" id="folderButton" aria-label="Folder">
+                        Folder
+                        <span class="dropdown-arrow"></span>
+                    </button>
+                    <div class="dropdown-content" id="folderDropdown">
+                        <div class="dropdown-item" data-value="all" aria-details="">All Folders</div>
+                    </div>
+                </div>
 
                 <!-- State filter dropdown -->
                 <div class="filter-dropdown">
@@ -83,10 +59,9 @@
                     </button>
                     <div class="dropdown-content" id="stateDropdown">
                         <div class="dropdown-item" data-value="all">All States</div>
-                        <div class="dropdown-item" data-value="completed">Completed</div>
-                        <div class="dropdown-item" data-value="running">Running</div>
-                        <div class="dropdown-item" data-value="failed">Failed</div>
-                        <div class="dropdown-item" data-value="cancelled">Cancelled</div>
+                        <div class="dropdown-item" data-value="0">Enabled</div>
+                        <div class="dropdown-item" data-value="1">Paused</div>
+                        <div class="dropdown-item" data-value="2">Disabled</div>
                     </div>
                 </div>
 
@@ -134,7 +109,7 @@
                 <!-- Tags filter dropdown -->
                 <div class="filter-dropdown">
                     <button class="dropdown-button" id="tagsButton" aria-label="Tags">
-                        Tags
+                        Tag
                         <span class="dropdown-arrow"></span>
                     </button>
                     <div class="dropdown-content" id="tagsDropdown">
@@ -165,7 +140,7 @@
                 </div> -->
 
                 <div class="pipeline-list" id="pipelineList">
-                    <div class="pipeline-item">sample pipeline</div>
+                    <!-- <div class="pipeline-item">sample pipeline</div> -->
                 </div>
             </div>
         </div>

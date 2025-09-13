@@ -92,11 +92,6 @@ document.addEventListener('click', () => {
     });
 });
 
-// Search input functionality
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    onFilterChange();
-});
-
 // Close button functionality
 document.getElementById('closeButton').addEventListener('click', () => {
     // Reset all filters
@@ -127,6 +122,8 @@ function getFilters() {
         selectedFilters[filterId] = item.dataset.value === 'all' ? null : item.dataset.value;
     });
 
+    selectedFilters['Name'] = searchValue ? "*" + searchValue + "*" : null;
+
     console.log('Filter changed:', {
         search: searchValue,
         filters: selectedFilters
@@ -149,17 +146,30 @@ function onFilterChange() {
         console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
         console.log("selectedFilters.Repository:", selectedFilters.Repository);
         const repoType = selectedFilters.Repository ? "tfsgit" : null;
+        const path = selectedFilters.Folder ? (selectedFilters.Folder === 'Root' ? "\\" : `\\${selectedFilters.Folder}`) : null;
 
-        buildClient.getDefinitions(projectId, null, selectedFilters.Repository, repoType, null, null, null, null, null, null).then((definitions) => {
-            for (let i = 0; i < definitions.length; i++) {
-                console.log("Definition:", definitions[i]);
-                if (definitions[i].path !== "\\") {
-                    createPipelineFolder(definitions[i]);
-                    loadPipelinesInOpenedFolder(definitions[i]);
+        buildClient.getDefinitions(projectId, selectedFilters.Name, selectedFilters.Repository, repoType, null, null, null, null, null, path).then((definitions) => {
+            let definitionsList = definitions;
+
+            console.log("Definitions fetched:", definitionsList);
+            console.log("Selected Filters:", selectedFilters);
+
+            if (selectedFilters.State && selectedFilters.State !== 'all') {
+                // "https://dev.azure.com/jririextensiondev/327587a1-abfb-493d-9084-dbb5803f3d01/_apis/build/status/1"
+                // get last build for each definition to check status
+                definitionsList = definitionsList.filter(def => {
+                    return def.queueStatus === Number(selectedFilters.State);
+                });
+            }
+
+            for (let i = 0; i < definitionsList.length; i++) {
+                if (definitionsList[i].path !== "\\") {
+                    createPipelineFolder(definitionsList[i]);
+                    loadPipelinesInOpenedFolder(definitionsList[i]);
                 }
 
                 else {
-                    const pipelineItem = createPipelineItem(definitions[i]);
+                    const pipelineItem = createPipelineItem(definitionsList[i]);
                     pipelineList.appendChild(pipelineItem);
                 }
 
@@ -179,15 +189,15 @@ function onFilterChange() {
 initializeDropdowns();
 
 // Example function to get current filter values
-function getCurrentFilters() {
-    const searchValue = document.getElementById('searchInput').value;
-    const filters = {};
+// function getCurrentFilters() {
+//     const searchValue = document.getElementById('searchInput').value;
+//     const filters = {};
 
-    document.querySelectorAll('.dropdown-item.selected').forEach(item => {
-        const dropdown = item.closest('.filter-dropdown');
-        const filterId = dropdown.querySelector('.dropdown-button').id.replace('Button', '');
-        filters[filterId] = item.dataset.value;
-    });
+//     document.querySelectorAll('.dropdown-item.selected').forEach(item => {
+//         const dropdown = item.closest('.filter-dropdown');
+//         const filterId = dropdown.querySelector('.dropdown-button').id.replace('Button', '');
+//         filters[filterId] = item.dataset.value;
+//     });
 
-    return { search: searchValue, filters };
-}
+//     return { search: searchValue, filters };
+// }
