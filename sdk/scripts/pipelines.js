@@ -52,6 +52,7 @@ function createPipelineItem(pipeline, nested = false) {
     const pipelineItem = document.createElement('div');
     let definitionStatusText = '';
     let definitionStatusClass = '';
+    let definitionStatusSrc = '';
     let reloadIcon = '';
     const nestedClass = nested ? 'pipeline-nested' : '';
     const clearedURL = pipelineURL.substring(0, pipelineURL.lastIndexOf('/'));
@@ -64,25 +65,27 @@ function createPipelineItem(pipeline, nested = false) {
             break;
         case 1:
             definitionStatusText = 'Pipeline is paused';
-            definitionStatusClass = 'img/crisis.png';
+            definitionStatusSrc = 'img/paused-red.png';
+            definitionStatusClass = 'pipeline-paused';
             break;
         case 2:
             definitionStatusText = 'Pipeline is disabled';
-            definitionStatusClass = 'img/forbidden.png';
+            definitionStatusSrc = 'img/error-32-fill.png';
+            definitionStatusClass = 'pipeline-disabled';
             break;
         default:
             definitionStatusText = '';
     }
 
-    pipelineItem.className = 'pipeline-item';
+    pipelineItem.className = 'pipeline-item ' + definitionStatusClass;
 
     pipelineItem.innerHTML = `<div class="pipeline-info">
                                 <div class="pipeline-details-container">
                                     <a href="${pipelineURL}" class="pipeline-link" target="_blank">
                                         <div class="pipeline-name ${nestedClass}">${pipeline.name}</div>
+                                        <span class="pipeline-status"><img src="${definitionStatusSrc}" alt="${definitionStatusText}" width="16px"  title="${definitionStatusText}"></span>
                                     </a>
                                 </div>
-                                <div style="flex: 1;"><span class="pipeline-status"><img src="${definitionStatusClass}" alt="${definitionStatusText}"  title="${definitionStatusText}"></span></div>
                                 <div class="pipeline-status-badge">
                                     <a href="${lastBuildURL}" target="_blank">
                                         <span><img src="${pipeline._links.badge.href}" alt="Pipeline Badge" id="${pipeline.id + '-badge'}" class="badge-icon" /></span>
@@ -155,7 +158,6 @@ function loadPipelinesInOpenedFolder(definition) {
 }
 
 function createPipelineFolder(pipelineFolder) {
-    console.log("Creating folder for path:", pipelineFolder.path);
     const pipelineItem = document.createElement('div');
     const rawFolderPath = pipelineFolder.path.substring(1, pipelineFolder.path.length);
     const folderName = pipelineFolder.path.substring(1, pipelineFolder.path.length).replaceAll(' ', '');
@@ -239,7 +241,7 @@ function initializePipelineList() {
         let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
         let commonMethods2To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods2To5);
 
-        console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
+        // console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
 
         getAllFolders(commonMethods, buildClient, projectId);
 

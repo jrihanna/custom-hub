@@ -1,10 +1,16 @@
 {
     "manifestVersion": 1,
-    "id": "azure-devops-extensions-custom-hub",
-    "version": "1.0.302",
-    "name": "Custom Hub",
-    "description": "Custom hub for Azure DevOps",
+    "id": "azure-devops-extensions-pipelines-manager",
+    "version": "1.0.0",
+    "name": "Pipelines Manager",
+    "description": "Pipelines Manager",
     "publisher": "jriri",
+    "public": true,
+    "content": {
+        "details": {
+            "path": "overview.md"
+        }
+    },
     "categories": [
         "Azure Pipelines"
     ],
@@ -14,21 +20,21 @@
         }
     ],
     "icons": {
-        "default": "img/logo.png"
+        "default": "img/pipelines-logo.png"
     },
     "contributions": [
         {
-            "id": "CustomHub",
+            "id": "pipelineManager",
             "type": "ms.vss-web.hub",
             "targets": [
                 "ms.vss-build-web.build-release-hub-group"
             ],
             "properties": {
-                "name": "Custom Hub",
+                "name": "Pipelines Manager",
                 "order": 99,
-                "catalogIconUrl": "img/CatalogIcon.png",
+                "catalogIconUrl": "img/pipelines-logo.png",
                 "previewImageUrl": "img/preview.png",
-                "uri": "custom-hub.html"
+                "uri": "pipeline-manager.html"
             }
         }
     ],
@@ -39,7 +45,7 @@
     ],
     "files": [
         {
-            "path": "custom-hub.html",
+            "path": "pipeline-manager.html",
             "addressable": true
         },
         {
@@ -52,6 +58,10 @@
         },
         {
             "path": "img",
+            "addressable": true
+        },
+        {
+            "path": "overview.md",
             "addressable": true
         }
     ]

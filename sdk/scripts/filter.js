@@ -6,7 +6,6 @@ function initializeDropdowns() {
     // CommonMethods2To7_2
     VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/VersionControl/GitRestClient"], async function (WidgetHelpers, VSS_Service, VSS_REPOSITORIES) {
         const projectId = VSS.getWebContext().project.id;
-        console.log("VSS_REPOSITORIES:", VSS_REPOSITORIES);
         let commonMethods = VSS_Service.getCollectionClient(VSS_REPOSITORIES.CommonMethods2To7_2);
 
         commonMethods.getRepositories(projectId).then(repositories => {
@@ -20,7 +19,7 @@ function initializeDropdowns() {
                     repoDropdown.appendChild(repoItem);
                 });
             }
-            console.log("Repositories:", repositories);
+
             return repositories;
         }).then(() => {
             toggleDropdowns(dropdowns);
@@ -103,9 +102,8 @@ document.getElementById('closeButton').addEventListener('click', () => {
     });
 
     document.querySelectorAll('.dropdown-button').forEach(button => {
-        const originalText = button.textContent.replace('\u25BC', '').trim();
-        console.log('Original Text:', originalText);
-        button.innerHTML = `${originalText} <span class="dropdown-arrow"></span>`;
+        const oroginalLabel = button.getAttribute('aria-label').trim();
+        button.innerHTML = `${oroginalLabel} <span class="dropdown-arrow"></span>`;
     });
 
     onFilterChange();
@@ -118,19 +116,10 @@ function getFilters() {
     document.querySelectorAll('.dropdown-item.selected').forEach(item => {
         const dropdown = item.closest('.filter-dropdown');
         const filterId = dropdown.querySelector('.dropdown-button').getAttribute('aria-label');
-        console.log('Filter ID:', filterId, 'Value:', item.dataset.value);
         selectedFilters[filterId] = item.dataset.value === 'all' ? null : item.dataset.value;
     });
 
     selectedFilters['Name'] = searchValue ? "*" + searchValue + "*" : null;
-
-    console.log('Filter changed:', {
-        search: searchValue,
-        filters: selectedFilters
-    });
-
-    console.log("selectedFilters:", selectedFilters);
-
     return selectedFilters;
 }
 
@@ -143,16 +132,11 @@ function onFilterChange() {
         const projectId = VSS.getWebContext().project.id;
         let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
 
-        console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
-        console.log("selectedFilters.Repository:", selectedFilters.Repository);
         const repoType = selectedFilters.Repository ? "tfsgit" : null;
         const path = selectedFilters.Folder ? (selectedFilters.Folder === 'Root' ? "\\" : `\\${selectedFilters.Folder}`) : null;
 
         buildClient.getDefinitions(projectId, selectedFilters.Name, selectedFilters.Repository, repoType, null, null, null, null, null, path).then((definitions) => {
             let definitionsList = definitions;
-
-            console.log("Definitions fetched:", definitionsList);
-            console.log("Selected Filters:", selectedFilters);
 
             if (selectedFilters.State && selectedFilters.State !== 'all') {
                 // "https://dev.azure.com/jririextensiondev/327587a1-abfb-493d-9084-dbb5803f3d01/_apis/build/status/1"
@@ -162,18 +146,22 @@ function onFilterChange() {
                 });
             }
 
-            for (let i = 0; i < definitionsList.length; i++) {
-                if (definitionsList[i].path !== "\\") {
-                    createPipelineFolder(definitionsList[i]);
-                    loadPipelinesInOpenedFolder(definitionsList[i]);
-                }
+            if (selectedFilters.Tags && selectedFilters.Tags !== 'all') {
+                const definitionsIds = definitionsList.map(def => def.id);
+                buildClient.getBuilds(projectId, definitionsIds, null, null, null, null, null, null, null, null, [selectedFilters.Tags], null, null, null, null, null, null, null).then(builds => {
+                    definitionsList = definitionsList.filter(def => {
+                        return builds.some(build => build.definition && build.definition.id === def.id);
+                    });
 
-                else {
-                    const pipelineItem = createPipelineItem(definitionsList[i]);
-                    pipelineList.appendChild(pipelineItem);
-                }
-
+                    renderPipelineList(definitionsList);
+                });
             }
+
+            else {
+                renderPipelineList(definitionsList);
+            }
+
+
         }).catch((error) => {
             console.error("Error fetching definitions:", error);
         });
@@ -184,6 +172,22 @@ function onFilterChange() {
     // Here you would typically call your filter function
     // applyFilters(searchValue, selectedFilters);
 }
+
+function renderPipelineList(definitionsList) {
+    for (let i = 0; i < definitionsList.length; i++) {
+        if (definitionsList[i].path !== "\\") {
+            createPipelineFolder(definitionsList[i]);
+            loadPipelinesInOpenedFolder(definitionsList[i]);
+        }
+
+        else {
+            const pipelineItem = createPipelineItem(definitionsList[i]);
+            pipelineList.appendChild(pipelineItem);
+        }
+
+    }
+}
+
 
 // Initialize the component
 initializeDropdowns();

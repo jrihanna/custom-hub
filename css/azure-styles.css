@@ -216,27 +216,25 @@
  }
 
  .pipeline-name {
-     font-size: 14px;
-     font-weight: 500;
+     font-size: .875rem;
      color: #323130;
      margin-bottom: 2px;
  }
 
  .pipeline-folder-name {
-     font-size: 16px;
+     font-size: .9rem;
      font-weight: bold;
      color: #323130;
      gap: 5px;
  }
 
  .pipeline-disabled {
-     background-color: #f3f2f1;
-     opacity: 0.6;
+     opacity: 0.4;
+     text-decoration: line-through;
  }
 
  .pipeline-paused {
-     background-color: #fff4ce;
-     opacity: 0.6;
+     opacity: 0.8;
  }
 
  .pipeline-status-badge {
@@ -270,8 +268,8 @@
 
  .pipeline-status {
      color: #605e5c;
-     margin: 3px 10px 0px 0px;
-     vertical-align: sub;
+     margin-left: 5px;
+     margin-top: 2px;
  }
 
  /* Error icon styling */
@@ -298,7 +296,7 @@
      margin: 2px;
      display: flex;
      cursor: pointer;
-     margin: 10px 2px 0px 2px;
+     margin: 10px 2px 0px 15px;
  }
 
  .reload-icon {
