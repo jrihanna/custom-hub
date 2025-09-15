@@ -2,12 +2,6 @@
 function reloadPipelineRun(pipelineId) {
     VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
         const projectId = VSS.getWebContext().project.id;
-        let params = {
-            "definition": {
-                "id": pipelineId
-            },
-            "sourceBranch": "refs/heads/main"
-        }
         const reloadImage = document.getElementById('reload-image-' + pipelineId)
         reloadImage.classList.add('rotate-animation');
 
@@ -34,12 +28,26 @@ function reloadPipelineRun(pipelineId) {
             }, 1000);
         }
 
+        let buildClient5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
         let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient2);
-        buildClient.queueBuild(params, projectId).then((build) => {
-            reloadBadge(0, build, pipelineId);
+
+        buildClient5.getLatestBuild(projectId, pipelineId).then((build) => {
+            const params = {
+                "definition": {
+                    "id": pipelineId
+                },
+                "sourceBranch": build.sourceBranch
+            }
+
+            buildClient.queueBuild(params, projectId).then((build) => {
+                reloadBadge(0, build, pipelineId);
+            }).catch((error) => {
+                console.error("Error queuing pipeline run:", error);
+            });
         }).catch((error) => {
-            console.error("Error queuing pipeline run:", error);
         });
+
+
     });
 }
 
@@ -119,7 +127,6 @@ function loadPipelinesInFolder(folderPath) {
         VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
             const projectId = VSS.getWebContext().project.id;
 
-            const selectedFilters = getFilters();
             let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
 
             buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + folderPath).then((definitions) => {

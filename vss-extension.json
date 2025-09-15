@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1,
     "id": "azure-devops-extensions-pipelines-manager",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "name": "Pipelines Manager",
     "description": "Pipelines Manager",
     "publisher": "jriri",
