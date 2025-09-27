@@ -1,0 +1,87 @@
+.three-dots-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.pipeline-folder-item:hover .three-dots-btn {
+    opacity: 1;
+}
+
+.three-dots-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.three-dots-btn:active {
+    background-color: #e0e0e0;
+}
+
+.dots {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dot {
+    width: 3px;
+    height: 3px;
+    background-color: #666;
+    border-radius: 50%;
+}
+
+.folder-dropdown-menu {
+    position: absolute;
+    right: 12px;
+    background: white;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 160px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 100;
+}
+
+.folder-dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.menu-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.1s ease;
+}
+
+.menu-item:hover {
+    background-color: #f8f8f8;
+}
+
+.pipeline-folder-item {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.pipeline-folder-item:hover {
+    border-color: #d1d1d1;
+    background-color: #f8f9fa;
+}

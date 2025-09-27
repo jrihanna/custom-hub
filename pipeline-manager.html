@@ -3,25 +3,10 @@
 
 <head>
     <link rel="stylesheet" href="css/azure-styles.css">
+    <link rel="stylesheet" href="css/menu-styles.css">
     <script src="sdk/scripts/VSS.SDK.min.js"></script>
     <script src="sdk/scripts/pipelines.js"></script>
-    <script type="text/javascript">
-        VSS.init({
-            explicitNotifyLoaded: true,
-            usePlatformStyles: true
-        });
 
-        initializePipelineList();
-
-        function onNameSearchChange() {
-            const searchInput = document.getElementById('searchInput').value;
-            if (searchInput != null && (searchInput.length > 2 || searchInput.length === 0)) {
-                console.log("Search input changed:", searchInput);
-                console.log("Triggering filter change with search input.", searchInput.length);
-                onFilterChange();
-            }
-        }
-    </script>
 </head>
 
 <body>
@@ -140,10 +125,30 @@
                 </div> -->
 
                 <div class="pipeline-list" id="pipelineList">
-                    <!-- <div class="pipeline-item">sample pipeline</div> -->
+                    <div class="pipeline-item">sample pipeline</div>
                 </div>
             </div>
         </div>
+        <script type="text/javascript">
+            VSS.init({
+                explicitNotifyLoaded: true,
+                usePlatformStyles: true
+            });
+
+            initializePipelineList();
+
+            function onNameSearchChange() {
+                const searchInput = document.getElementById('searchInput').value;
+                if (searchInput != null && (searchInput.length > 2 || searchInput.length === 0)) {
+                    console.log("Search input changed:", searchInput);
+                    console.log("Triggering filter change with search input.", searchInput.length);
+                    onFilterChange();
+                }
+            }
+
+            sampleFolder = { id: "all", name: "Sample Folder", path: "\\something" };
+            createPipelineFolder(sampleFolder);
+        </script>
         <script src="sdk/scripts/filter.js"></script>
     </div>
 </body>
