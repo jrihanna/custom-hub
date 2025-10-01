@@ -2,10 +2,10 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="css/azure-styles.css">
-    <link rel="stylesheet" href="css/menu-styles.css">
     <script src="sdk/scripts/VSS.SDK.min.js"></script>
     <script src="sdk/scripts/pipelines.js"></script>
+    <link rel="stylesheet" href="css/azure-styles.css">
+    <link rel="stylesheet" href="css/menu-styles.css">
 
 </head>
 
@@ -129,6 +129,31 @@
                 </div>
             </div>
         </div>
+        <div class="modal-overlay" id="customModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <div class="modal-title" id="modalTitle">Confirm Action</div>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    Are you sure you want to proceed?
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn modal-btn-confirm" id="confirmBtn"
+                        onclick="hideCustomModal(true)">Confirm</button>
+                    <button class="modal-btn modal-btn-cancel" onclick="hideCustomModal(false)">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-modal" id="loadingModal">
+                <div id="loadingSpinner" class="spinner"></div>
+                <div id="loadingText" class="loading-text">Loading...</div>
+                <div id="loadingSubtitle" class="loading-subtitle"></div>
+                <div id="progressContainer" class="progress-container" style="display: none;">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
         <script type="text/javascript">
             VSS.init({
                 explicitNotifyLoaded: true,
@@ -147,7 +172,7 @@
             }
 
             sampleFolder = { id: "all", name: "Sample Folder", path: "\\something" };
-            createPipelineFolder(sampleFolder);
+            createPipelineFolder(sampleFolder.path);
         </script>
         <script src="sdk/scripts/filter.js"></script>
     </div>

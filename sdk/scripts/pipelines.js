@@ -52,7 +52,6 @@ function reloadPipelineRun(pipelineId) {
 }
 
 function createPipelineItem(pipeline, nested = false) {
-    console.log("pipeline:", pipeline);
     let pipelineStatus = pipeline.queueStatus;
 
     // use _links to get the URL for the pipeline and badge
@@ -104,11 +103,10 @@ function createPipelineItem(pipeline, nested = false) {
     return pipelineItem;
 }
 
-function loadPipelinesInFolder(folderPath) {
-    console.log("folderPathsfdsfgfdg:", folderPath);
+function loadPipelinesInFolder(folderPath, path) {
     // This function can be used to load pipeline folders if needed
     const folderNameNoSpace = folderPath.replaceAll(' ', '');
-    const arrowIcon = document.getElementById('openCloseIcon');
+    const arrowIcon = document.getElementById(`${'openCloseIcon' + folderNameNoSpace}`);
 
     const pipelineFolderContentList = document.getElementById('pipeline-folder-contents-' + folderNameNoSpace);
 
@@ -119,29 +117,28 @@ function loadPipelinesInFolder(folderPath) {
 
     pipelineFolderContentList.classList.toggle('hidden');
 
-
     const sampleDefinition = { id: "0", name: "Sample", path: "\\" + folderPath, _links: { web: { href: "#" }, badge: { href: "#" } }, queueStatus: 0 };
     // const pipelineItem0 = createPipelineItem(sampleDefinition, true);
     // pipelineFolderContentList.appendChild(pipelineItem0);
 
     if (!isVisible) {
-        const isAlreadyLoaded = pipelineFolderContentList.children.length > 0;
+        const isAlreadyLoaded = pipelineFolderContentList.ariaExpanded === 'true';
         if (isAlreadyLoaded) {
             console.log("Pipeline folder content already loaded.");
             return false; // Prevent default link behavior
         }
-
-
 
         VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], async function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
             const projectId = VSS.getWebContext().project.id;
 
             let buildClient = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient5);
 
-            buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + folderPath).then((definitions) => {
+            console.log("Loading pipelines in folder:", folderPath);
+            buildClient.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + path).then((definitions) => {
                 for (let i = 0; i < definitions.length; i++) {
                     const pipelineItem = createPipelineItem(definitions[i], true);
                     pipelineFolderContentList.appendChild(pipelineItem);
+                    pipelineFolderContentList.ariaExpanded = 'true';
                 }
             }).catch((error) => {
                 console.error("Error fetching definitions:", error);
@@ -156,7 +153,7 @@ function loadPipelinesInOpenedFolder(definition) {
     // This function can be used to load pipeline folders if needed
     const rawFolderPath = definition.path.substring(1, definition.path.length);
     const folderNameNoSpace = rawFolderPath.replaceAll(' ', '');
-    const arrowIcon = document.getElementById('openCloseIcon');
+    const arrowIcon = document.getElementById(`${'openCloseIcon' + folderNameNoSpace}`);
 
     const pipelineFolderContentList = document.getElementById('pipeline-folder-contents-' + folderNameNoSpace);
 
@@ -173,131 +170,125 @@ function loadPipelinesInOpenedFolder(definition) {
     return false; // Prevent default link behavior
 }
 
-function toggleDropdown(event, rawFolderPath) {
-    const dropdownMenu = document.getElementById('folderDropdownMenu' + rawFolderPath);
+function toggleDropdown(event, folderName) {
+    const dropdownMenu = document.getElementById('folderDropdownMenu' + folderName);
     const isMenuOpen = dropdownMenu.classList.contains('show');
     dropdownMenu.classList.toggle('show', !isMenuOpen);
     event.stopPropagation(); // Prevent the event from bubbling up to document  
 }
 
-const TriggerTypeMap = {
-    1: "none",
-    2: "continuousIntegration",
-    4: "batchedContinuousIntegration",
-    8: "schedule",
-    16: "gatedCheckIn",
-    32: "batchedGatedCheckIn",
-    64: "pullRequest",
-    128: "buildCompletion",
-    255: "all"
-}
-
-const BuildTypes = {
-    1: "Xaml",
-    2: "Build"
-}
-
-const DefinitionQueueStatusType = {
-    0: "enabled",
-    1: "paused",
-    2: "disabled"
-}
-
-const DefinitionQualityType = {
-    1: "definition",
-    2: "draft"
-}
-
-function correctPayload(definition) {
-    let correctedDefinition = definition;
-    if (definition.triggers) {
-        definition.triggers.forEach((trigger, index) => {
-            correctedDefinition.triggers[index].triggerType = TriggerTypeMap[trigger.triggerType];
-        });
-
-        correctedDefinition.type = BuildTypes[definition.type];
-        correctedDefinition.queueStatus = DefinitionQueueStatusType[definition.queueStatus];
-        correctedDefinition.quality = DefinitionQualityType[definition.quality];
-        correctedDefinition.process = {
-            type: 2,
-        }
-        return correctedDefinition;
+function hideCustomModal(confirmed) {
+    document.getElementById('customModal').classList.remove('show');
+    if (modalResolve) {
+        modalResolve(confirmed);
+        modalResolve = null;
     }
 }
 
-function handleMenuClick(action, rawFolderPath, folderName) {
-    const dropdownMenu = document.getElementById('folderDropdownMenu' + folderName);
-    dropdownMenu.classList.remove('show');
-    // let processss = {
-    //     yamlFilename: "",
-    //     type: 2
-    // };
-    VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
-        const projectId = VSS.getWebContext().project.id;
-        const buildClient3_2 = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient3_2);
-        const commonMethods4To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods4To5);
-        commonMethods4To5.definitionsApiVersion = "5.0-preview.6";
+function showLoadingModal(text = "Loading...", subtitle = "") {
+    document.getElementById('loadingText').textContent = text;
+    document.getElementById('loadingSubtitle').textContent = subtitle;
+    document.getElementById('progressContainer').style.display = 'none';
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('loadingOverlay').classList.add('show');
 
-        commonMethods4To5.getDefinition(1, projectId).then((def) => {
-            console.log("Fetched definition:", def);
-            def.queueStatus = 1; // Paused
-            // def.process = processss;
-            // def["process"] = processss;
-            // def.buildProcess = { type: 'T' };
-            console.log("def after change:", def);
-            let d1 = def;
-            console.log("d1:", d1);
+    // Disable scrolling
+    document.body.style.overflow = 'hidden';
+}
 
-            commonMethods4To5.updateDefinition(d1, d1.id, projectId).then(() => {
-                console.log("Pipelines paused");
-            }).catch((error) => {
-                console.error("Error updating definition:", error);
-            });
+let modalResolve = null;
+function hideLoadingModal() {
+    document.getElementById('loadingOverlay').classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
 
-        });
-        //     buildClient3_2.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + rawFolderPath).then((definitions) => {
-        //         // console.log("definitions to pause:", definitions);
+function showBasicLoading() {
+    showLoadingModal("In progress...", "Please wait while pipelines are being updated.");
+    // showSuccess("Data saved successfully!");
+}
 
-        //         for (let i = 0; i < definitions.length; i++) {
-
-        //             // console.log("Pausing pipeline:", definitions[i]);
-
-        //             buildClient3_2.getDefinition(definitions[i].id, projectId, definitions[i].revision).then((def) => {
-        //                 console.log("Fetched definition:", def);
-        //                 def.queueStatus = 1; // Paused
-        //                 def.process = { "type": 2 };
-        //                 console.log("def after change:", def);
-
-        //                 buildClient3_2.updateDefinition(def, def.id, projectId).then(() => {
-        //                     console.log("Pipelines paused");
-        //                 }).catch((error) => {
-        //                     console.error("Error updating definition:", error);
-        //                 });
-        //             });
-
-        //         }
-        //     }).catch((error) => {
-        //         console.error("Error fetching definitions:", error);
-        //     });
+function showConfirmDialog(title, message, confirmText = 'Confirm') {
+    return new Promise((resolve) => {
+        modalResolve = resolve;
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalBody').innerHTML = message;
+        document.getElementById('confirmBtn').textContent = confirmText;
+        document.getElementById('confirmBtn').className = 'modal-btn modal-btn-confirm';
+        document.getElementById('customModal').classList.add('show');
     });
 }
 
-function createPipelineFolder(pipelineFolder) {
-    const pipelineItem = document.createElement('div');
-    const rawFolderPath = pipelineFolder.path.substring(1, pipelineFolder.path.length);
-    const folderName = pipelineFolder.path.substring(1, pipelineFolder.path.length).replaceAll(' ', '');
-    const pipelineList = document.getElementById('pipelineList');
-    pipelineItem.id = 'pipeline-folder-' + folderName;
+function handleMenuClick(action, rawFolderPath, folderName) {
+    showConfirmDialog("Confirm", `Are you sure you want to <b>${action}</b> all pipelines in this folder?`).then((confirmed) => {
+        if (confirmed) {
+            showBasicLoading();
 
-    pipelineItem.innerHTML = `<div class="pipeline-folder-item">
+            VSS.require(["TFS/Dashboards/WidgetHelpers", "VSS/Service", "TFS/Build/RestClient",], function (WidgetHelpers, VSS_Service, TFS_Build_WebApi) {
+                const projectId = VSS.getWebContext().project.id;
+                const buildClient3_2 = VSS_Service.getCollectionClient(TFS_Build_WebApi.BuildHttpClient3_2);
+                const commonMethods4To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods4To5);
+                commonMethods4To5.definitionsApiVersion = "5.0-preview.6";
+
+                buildClient3_2.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + rawFolderPath).then((definitions) => {
+                    let stateToSet = 1;
+                    switch (action) {
+                        case 'Pause':
+                            stateToSet = 1; // Paused
+                            break;
+                        case 'Disable':
+                            stateToSet = 2; // Disabled
+                            break;
+                        case 'Enable':
+                            stateToSet = 0; // Enabled
+                            break;
+                        default:
+                            console.log("Unknown action:", action);
+                            return;
+                    }
+
+                    for (let i = 0; i < definitions.length; i++) {
+
+                        if (definitions[i].queueStatus != stateToSet) {
+                            commonMethods4To5.getDefinition(definitions[i].id, projectId).then((def) => {
+                                def.queueStatus = stateToSet;
+                                commonMethods4To5.updateDefinition(def, def.id, projectId).then(() => {
+                                    console.log("Pipeline updated");
+                                }).catch((error) => {
+                                    console.error("Error updating definition:", error);
+                                });
+
+                            });
+                        }
+                    }
+                }).then(() => {
+                    hideLoadingModal();
+                }).catch((error) => {
+                    console.error("Error fetching definitions:", error);
+                });
+            });
+        }
+        else {
+            hideCustomModal(confirmed);
+        }
+        const dropdownMenu = document.getElementById('folderDropdownMenu' + folderName);
+        dropdownMenu.classList.remove('show');
+    }).catch((error) => {
+        console.error("Error showing confirm dialog:", error);
+    });
+
+}
+
+function addElement(folderName, rawFolderPath, element, parentElement, ariaLabel = '', parentName = '') {
+    console.log("Adding element:", folderName, "to parent:", parentElement.id, "with ariaLabel:", ariaLabel, "and parentName:", parentName);
+    element.innerHTML = `<div class="pipeline-folder-item">
                                 <div class="pipeline-details-container">
-                                    <div class="pipeline-folder-link" onclick="return loadPipelinesInFolder('${rawFolderPath}');">
-                                        <span class=""><img src="img/to-right.png" alt="Open Close Icon" class="folder-icon" id="openCloseIcon"/></span>
+                                    <div class="pipeline-folder-link" onclick="return loadPipelinesInFolder('${rawFolderPath}', '${ariaLabel}');">
+                                        <span class=""><img src="img/to-right.png" alt="Open Close Icon" class="folder-icon" id='${'openCloseIcon' + folderName}'/></span>
                                         <span class=""><img src="img/group-icon.png" alt="Folder Icon" class="folder-icon" /></span>
                                         <div class="pipeline-folder-name">${rawFolderPath}</div>
                                     </div>
                                 </div>
-                                <button class="three-dots-btn" id="menuBtn" onclick="toggleDropdown(event, '${rawFolderPath}')">
+                                <button class="three-dots-btn" id="menuBtn" onclick="toggleDropdown(event, '${folderName}')">
                                     <div class="dots">
                                         <div class="dot"></div>
                                         <div class="dot"></div>
@@ -306,13 +297,84 @@ function createPipelineFolder(pipelineFolder) {
                                 </button>
                                 
                                 <div class="folder-dropdown-menu" id="${'folderDropdownMenu' + folderName}">
-                                    <div class="menu-item" onclick="handleMenuClick('pause', '${rawFolderPath}', '${folderName}')">Pause All</div>
+                                    <div class="menu-item" onclick="handleMenuClick('Enable', '${rawFolderPath}', '${folderName}')">Enable All</div>
+                                    <div class="menu-item" onclick="handleMenuClick('Pause', '${rawFolderPath}', '${folderName}')">Pause All</div>
+                                    <div class="menu-item" onclick="handleMenuClick('Disable', '${rawFolderPath}', '${folderName}')">Disable All</div>
                                 </div>
                             </div>
-                            <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}"></div>`;
+                            <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}" aria-expanded='false'></div>`;
+
+    const parentElementList = document.getElementById('pipeline-folder-contents-' + parentName);
+    if (parentElementList) {
+        parentElementList.appendChild(element);
+    }
+    else {
+        parentElement.appendChild(element);
+    }
+}
+
+function createNestedFolders(pipelineFolderName, parentElement, currentLevel = 0, parentName = '') {
+    console.log("Creating nested folder for:", pipelineFolderName, "under parent:", parentElement.id, "at level:", currentLevel);
+    const nameNoSlash = pipelineFolderName.charAt(0) === '\\' ? pipelineFolderName.substring(1) : pipelineFolderName;
+    const folderNestedPath = nameNoSlash.split('\\').length > 1 ? nameNoSlash.split('\\') : [nameNoSlash];
+
+    const folderItem = document.createElement('div');
+    const rawFolderPath = folderNestedPath[0];
+    const folderName = rawFolderPath.replaceAll(' ', '');
+
+    if (parentElement.id === 'pipelineList') {
+        folderItem.id = `pipeline-folder-${folderName}`;
+    }
+    else {
+        folderItem.id = `${parentElement.id}-${folderName}`;
+    }
 
 
-    pipelineList.prepend(pipelineItem);
+    let ariaLabelPrefix = rawFolderPath;
+    if (parentElement.id != 'pipelineList') {
+        ariaLabelPrefix = parentElement.ariaLabel + '\\\\' + rawFolderPath;
+        folderItem.style.marginLeft = '20px'; // Adds 20px to the left margin
+    }
+    folderItem.ariaLabel = ariaLabelPrefix;
+
+    const isAlreadyExists = document.getElementById(folderItem.id);
+    console.log("Is Already Exists:", isAlreadyExists, "for ID:", folderItem.id);
+    if (!isAlreadyExists) {
+        addElement(folderName, rawFolderPath, folderItem, parentElement, ariaLabelPrefix, parentName);
+    }
+
+    currentLevel++;
+
+    if (folderNestedPath.length > 1) {
+        createNestedFolders(folderNestedPath.slice(1).join("\\"), folderItem, currentLevel, folderName);
+    }
+}
+
+function createPipelineFolder(pipelineFolderName) {
+    // console.log("Creating pipeline folder for:", pipelineFolderName);
+    const folderNestedPath = pipelineFolderName.split('\\');
+    // console.log("Folder Nested Path:", folderNestedPath);
+
+    // if (folderNestedPath.length > 2) {
+    //     console.log("Nested folders detected. Creating nested folders.");
+    createNestedFolders(pipelineFolderName, document.getElementById('pipelineList'));
+    //     return;
+    // }
+
+    // if (folderNestedPath.length <= 2) {
+    //     console.log("No nested folders. Creating single folder.");
+    //     const pipelineItem = document.createElement('div');
+    //     const rawFolderPath = pipelineFolderName.substring(1, pipelineFolderName.length);
+    //     const folderName = pipelineFolderName.substring(1, pipelineFolderName.length).replaceAll(' ', '');
+    //     const pipelineList = document.getElementById('pipelineList');
+    //     pipelineItem.id = 'pipeline-folder-' + folderName;
+
+    //     const isAlreadyExists = document.getElementById(pipelineItem.id);
+    //     if (isAlreadyExists) {
+    //         return;
+    //     }
+    //     addElement(folderName, rawFolderPath, pipelineItem, pipelineList);
+    // }
 }
 
 function clearPipelineList() {
@@ -325,6 +387,7 @@ function clearPipelineList() {
 
 function getAllFolders(commonMethods, buildClient, projectId) {
     commonMethods.getFolders(projectId).then((folders) => {
+        console.log("Folders:", folders);
 
         const foldersDropdown = document.getElementById("folderDropdown");
         folders.forEach(folder => {
@@ -347,7 +410,7 @@ function getAllFolders(commonMethods, buildClient, projectId) {
                 });
             }
             else {
-                createPipelineFolder(folder);
+                createPipelineFolder(folder.path);
                 // pipelineList.appendChild(pipelineItem);
             }
         });
@@ -380,11 +443,11 @@ function initializePipelineList() {
         let commonMethods = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods3To5);
         let commonMethods2To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods2To5);
 
-        console.log("VSS_Service:", VSS_Service);
+        // console.log("VSS_Service:", VSS_Service);
         console.log("TFS_Build_WebApi:", TFS_Build_WebApi);
-        console.log("buildClient:", buildClient);
-        console.log("commonMethods:", commonMethods);
-        console.log("commonMethods2To5:", commonMethods2To5);
+        // console.log("buildClient:", buildClient);
+        // console.log("commonMethods:", commonMethods);
+        // console.log("commonMethods2To5:", commonMethods2To5);
 
         getAllFolders(commonMethods, buildClient, projectId);
 
