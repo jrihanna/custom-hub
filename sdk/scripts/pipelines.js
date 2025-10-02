@@ -218,7 +218,7 @@ function showConfirmDialog(title, message, confirmText = 'Confirm') {
     });
 }
 
-function handleMenuClick(action, rawFolderPath, folderName) {
+function handleMenuClick(action, rawFolderPath, folderName, ariaLabel) {
     showConfirmDialog("Confirm", `Are you sure you want to <b>${action}</b> all pipelines in this folder?`).then((confirmed) => {
         if (confirmed) {
             showBasicLoading();
@@ -229,7 +229,7 @@ function handleMenuClick(action, rawFolderPath, folderName) {
                 const commonMethods4To5 = VSS_Service.getCollectionClient(TFS_Build_WebApi.CommonMethods4To5);
                 commonMethods4To5.definitionsApiVersion = "5.0-preview.6";
 
-                buildClient3_2.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + rawFolderPath).then((definitions) => {
+                buildClient3_2.getDefinitions(projectId, null, null, null, null, null, null, null, null, "\\" + ariaLabel).then((definitions) => {
                     let stateToSet = 1;
                     switch (action) {
                         case 'Pause':
@@ -297,9 +297,9 @@ function addElement(folderName, rawFolderPath, element, parentElement, ariaLabel
                                 </button>
                                 
                                 <div class="folder-dropdown-menu" id="${'folderDropdownMenu' + folderName}">
-                                    <div class="menu-item" onclick="handleMenuClick('Enable', '${rawFolderPath}', '${folderName}')">Enable All</div>
-                                    <div class="menu-item" onclick="handleMenuClick('Pause', '${rawFolderPath}', '${folderName}')">Pause All</div>
-                                    <div class="menu-item" onclick="handleMenuClick('Disable', '${rawFolderPath}', '${folderName}')">Disable All</div>
+                                    <div class="menu-item" onclick="handleMenuClick('Enable', '${rawFolderPath}', '${folderName}', '${ariaLabel}')">Enable All</div>
+                                    <div class="menu-item" onclick="handleMenuClick('Pause', '${rawFolderPath}', '${folderName}', '${ariaLabel}')">Pause All</div>
+                                    <div class="menu-item" onclick="handleMenuClick('Disable', '${rawFolderPath}', '${folderName}', '${ariaLabel}')">Disable All</div>
                                 </div>
                             </div>
                             <div class="pipeline-folder-list hidden" id="pipeline-folder-contents-${folderName}" aria-expanded='false'></div>`;
